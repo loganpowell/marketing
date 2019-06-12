@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "citysdk": "^2.0.28",
+    "d3": "^5.9.2",
     "pym.js": "^1.3.2"
   }
 }
