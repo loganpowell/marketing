@@ -34,19 +34,20 @@ censusPromise({
 }).then(data => setup(data));
 
 function setup(data){
-    const width = 800,
+    let width = 800,
         height = 800;
     
+        
     //define projection and path
-    const projection = d3.geoAlbers()
+    const projection = d3.geoAlbersUsa()
         .translate([width/ 2, height / 2])
-        .scale([750]);
+        .scale([width]);
     
     const path = d3.geoPath()
         .projection(projection);
 
     //setup svg
-    const svg = d3.select('body').append('svg')
+    const map = d3.select('body').append('svg')
         .attr('width', width)
         .attr('height', height);
 
@@ -74,7 +75,7 @@ function setup(data){
         return percentBroadband;
     }
 
-    svg.selectAll('path')
+    map.selectAll('path')
         .data(data.features)
         .enter() //interate
             .append('path')
@@ -92,6 +93,31 @@ function setup(data){
                 infobox.text('hover over a county for details');
             })
             
+    //adpated from https://eyeseast.github.io/visible-data/2013/08/26/responsive-d3/
+    d3.select(window)
+        .on("resize", resize);
+
+    function resize(){
+        //get width
+        width = parseInt(d3.select('body').style('width'));
+
+        //reset projection
+        projection
+            .translate([width / 2, height / 2])
+            .scale(width);
+
+        //set map attr
+        map.attr('width', width).attr('height', height);
+
+        //redraw geom
+        map.selectAll('path').attr('d', path);
+
+        //recenter infobox
+        infobox.attr('x', width / 2)
+    }
+
+    //setup
+    resize();
 }
 
 let pymChild = new pym.Child()
