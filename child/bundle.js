@@ -8113,20 +8113,27 @@ censusPromise({
   pymChild.sendHeight()
 });
 
+let margin = {top: 10, left: 10, bottom: 10, right: 10}
+let width = parseInt(d3.select('#map').style('width'))
+    width = width - margin.left - margin.right
+let mapRatio = .5
+let height = width * mapRatio;
+
+
 function setup(data) {
-  const width = 800,
-    height = 800;
+  // let width = 800,
+  //       height = 800;
 
   //define projection and path
   const projection = d3.geoAlbers()
+    .scale(width)
     .translate([width / 2, height / 2])
-    .scale([750]);
 
   const path = d3.geoPath()
     .projection(projection);
 
   //setup svg
-  const svg = d3.select('body').append('svg')
+  let map = d3.select('#map').append('svg')
     .attr('width', width)
     .attr('height', height);
 
@@ -8154,7 +8161,39 @@ function setup(data) {
     return percentBroadband;
   }
 
-  svg.selectAll('path')
+  /* ====================================== 
+  RESIZING
+  ====================================== */
+
+
+  let resize = () => {
+    // adjust things when the window size changes
+    width = parseInt(d3.select('#map').style('width'));
+    width = width - margin.left - margin.right;
+    height = width * mapRatio;
+
+    // update projection
+    projection
+        .translate([width / 2, height / 2])
+        .scale(width);
+
+    // resize the map container
+    map
+        .style('width', width + 'px')
+        .style('height', height + 'px');
+
+    // resize the map
+    map.select('.land').attr('d', path);
+    map.selectAll('.state').attr('d', path);
+  }
+
+ 
+
+  /* ===
+  SVG
+  === */
+
+  map.selectAll('path')
     .data(data.features)
     .enter() //interate
       .append('path')
@@ -8172,6 +8211,7 @@ function setup(data) {
         infobox.text('hover over a county for details');
       })
   
+    d3.select(window).on('resize', resize);
 }
 
 
