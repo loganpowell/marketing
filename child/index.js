@@ -99,9 +99,7 @@ function setupMap(data) {
     d3.select(window)
         .on("resize", resize);
 
-    pymChild = new pym.Child({
-        renderCallback: resize
-    });
+    pymChild = new pym.Child();
 }
 
 function resize() {
