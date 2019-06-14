@@ -4,8 +4,12 @@
   ],
   "plugins": [
     [
-      "import",
-      {
+      "babel-plugin-dotenv", {
+        "replacedModuleName": "babel-dotenv"
+      }
+    ],
+    [
+      "import", {
         "libraryName": "antd",
         "libraryDirectory": "lib",
         "style": true
