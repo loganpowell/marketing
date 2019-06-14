@@ -138,6 +138,7 @@ const Index = ({ router: { query: { key } } }) => {
   )
 }
 
+Index.getInitialProps
 // const Index = fetcher("https://data.usajobs.gov/api/Search?Organization=CM63&Page=1&LocationName=22202").then(r => tabular(r))
 
 export default withPageRouter(Index)

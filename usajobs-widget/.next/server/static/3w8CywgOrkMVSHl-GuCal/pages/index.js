@@ -467,36 +467,38 @@ var withPageRouter_withPageRouter = function withPageRouter(Component) {
 
     // split at first `?`
     var searchParams = new URLSearchParams(router.asPath.split(/\?/)[1]);
-    var query = {};
-    var _iteratorNormalCompletion = true;
-    var _didIteratorError = false;
-    var _iteratorError = undefined;
+    var query = {}; // replace the empty query
 
-    try {
-      for (var _iterator = get_iterator_default()(searchParams), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-        var _step$value = _slicedToArray(_step.value, 2),
-            key = _step$value[0],
-            value = _step$value[1];
+    setTimeout(function () {
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
 
-        query[key] = value;
-      } // replace the empty query
-
-    } catch (err) {
-      _didIteratorError = true;
-      _iteratorError = err;
-    } finally {
       try {
-        if (!_iteratorNormalCompletion && _iterator.return != null) {
-          _iterator.return();
+        for (var _iterator = get_iterator_default()(searchParams), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var _step$value = _slicedToArray(_step.value, 2),
+              key = _step$value[0],
+              value = _step$value[1];
+
+          query[key] = value;
         }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
       } finally {
-        if (_didIteratorError) {
-          throw _iteratorError;
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return != null) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
         }
       }
-    }
 
-    router.query = query;
+      router.query = query;
+    }, 500);
     return external_react_default.a.createElement(Component, _extends({}, props, {
       router: router
     }));
@@ -728,8 +730,9 @@ var pages_Index = function Index(_ref3) {
       }, "Delete"));
     }
   }));
-}; // const Index = fetcher("https://data.usajobs.gov/api/Search?Organization=CM63&Page=1&LocationName=22202").then(r => tabular(r))
+};
 
+pages_Index.getInitialProps; // const Index = fetcher("https://data.usajobs.gov/api/Search?Organization=CM63&Page=1&LocationName=22202").then(r => tabular(r))
 
 /* harmony default export */ var pages = __webpack_exports__["default"] = (withPageRouter_withPageRouter(pages_Index));
 

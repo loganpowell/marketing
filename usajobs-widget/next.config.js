@@ -3,6 +3,7 @@ const withLess = require('@zeit/next-less')
 const lessToJS = require('less-vars-to-js')
 const fs = require('fs')
 const path = require('path')
+const fetch = require('isomorphic-unfetch')
 
 // Where your antd-custom.less file lives
 const themeVariables = lessToJS(

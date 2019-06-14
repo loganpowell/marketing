@@ -11,12 +11,14 @@ export const withPageRouter = (Component) => {
         const searchParams = new URLSearchParams(router.asPath.split(/\?/)[1]);
 
         const query = {};
-        for (const [key, value] of searchParams) {
-            query[key] = value;
-        }
 
         // replace the empty query
-        router.query = query;
+        setTimeout(() => {
+          for (const [key, value] of searchParams) {
+            query[key] = value;
+          }
+          router.query = query;
+        }, 500)
 
         return (<Component {...props} router={router} />);
     });
