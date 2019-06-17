@@ -47,11 +47,12 @@ const fetcher = async (url, key) => {
     } = MatchedObjectDescriptor
     return {
       key: idx,
-      firstName: PositionTitle,
-      lastName: catagory,
-      age: applyBy,
-      address: LocationName,
-      tags: [applyLink, DepartmentName]
+      positionTitle: PositionTitle,
+      deadline: applyBy,
+      location: LocationName,
+      tags: DepartmentName,
+      link: applyLink,
+      payRange: `$${Number(minPay).toFixed(0)} to $${Number(maxPay).toFixed(0)} ${per}`
     }
   }) // summaries is an object
 }
@@ -61,26 +62,26 @@ const fetcher = async (url, key) => {
 // const data = [
 //   {
 //     key: '1',
-//     firstName: 'John',
-//     lastName: 'Brown',
+//     positionTitle: 'John',
+//     deadline: 'Brown',
 //     age: 32,
-//     address: 'New York No. 1 Lake Park',
+//     location: 'New York No. 1 Lake Park',
 //     tags: ['nice', 'developer'],
 //   },
 //   {
 //     key: '2',
-//     firstName: 'Jim',
-//     lastName: 'Green',
+//     positionTitle: 'Jim',
+//     deadline: 'Green',
 //     age: 42,
-//     address: 'London No. 1 Lake Park',
+//     location: 'London No. 1 Lake Park',
 //     tags: ['loser'],
 //   },
 //   {
 //     key: '3',
-//     firstName: 'Joe',
-//     lastName: 'Black',
+//     positionTitle: 'Joe',
+//     deadline: 'Black',
 //     age: 32,
-//     address: 'Sidney No. 1 Lake Park',
+//     location: 'Sidney No. 1 Lake Park',
 //     tags: ['cool', 'teacher'],
 //   },
 // ];
@@ -104,36 +105,36 @@ const Index = ({ router: { query: { key } } }) => {
   return (
     <Table dataSource={data}>
       {/* <ColumnGroup title="Name"> */}
-        <Column title="First Name" dataIndex="firstName" key="firstName" />
-        <Column title="Last Name" dataIndex="lastName" key="lastName" />
+        <Column title="Position" dataIndex="positionTitle" key="positionTitle" />
+        <Column title="Apply By:" dataIndex="deadline" key="deadline" />
       {/* </ColumnGroup> */}
-      <Column title="Age" dataIndex="age" key="age" />
-      <Column title="Address" dataIndex="address" key="address" />
+      <Column title="Pay Range" dataIndex="payRange" key="payRange" />
+      <Column title="Location" dataIndex="location" key="location" />
       <Column
-        title="Tags"
+        title="Apply Here:"
         dataIndex="tags"
         key="tags"
-        render={tags => (
-          <span>
-            {tags.map(tag => (
-              <Tag color="red" key={tag}>
-                {tag}
+        render={(text, record) => (
+            <span>
+              <Tag color="black" key={record.key}>
+                <a href={record.link}>
+                  { record.tags }
+                </a>
               </Tag>
-            ))}
-          </span>
+            </span> 
         )}
       />
-      <Column
+      {/* <Column
         title="Action"
         key="action"
         render={(text, record) => (
           <span>
-            <a href="javascript:;">Invite {record.lastName}</a>
+            <a href={record.link}>Apply</a>
             <Divider type="vertical" />
             <a href="javascript:;">Delete</a>
           </span>
         )}
-      />
+      /> */}
     </Table>
   )
 }

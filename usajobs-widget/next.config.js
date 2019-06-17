@@ -46,7 +46,7 @@ module.exports = withLess({
   For more advanced usage see: https://nextjs.org/docs#dynamic-assetprefix
   */
 
-  assetPrefix: process.env.NODE_ENV === 'production' ? '.' : '.',
+  assetPrefix: '.',
 
   // route configuration
   exportPathMap: () => ({'/': { page: '/'}})
