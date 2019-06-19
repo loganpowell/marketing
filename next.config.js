@@ -4,7 +4,7 @@ const lessToJS = require('less-vars-to-js')
 const fs = require('fs')
 const path = require('path')
 
-// Where your antd-custom.less file lives
+// Where the antd variable customization file lives
 const themeVariables = lessToJS(
   fs.readFileSync(path.resolve(__dirname, './theme/antd-custom.less'), 'utf8')
 )

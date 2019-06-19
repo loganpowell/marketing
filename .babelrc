@@ -8,6 +8,7 @@
         "replacedModuleName": "babel-dotenv"
       }
     ],
+    // see babel-plugin-import for antd: https://github.com/ant-design/babel-plugin-import#usage
     [
       "import", {
         "libraryName": "antd",
