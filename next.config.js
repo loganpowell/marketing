@@ -48,6 +48,9 @@ module.exports = withLess({
   assetPrefix: '.',
 
   // route configuration
-  exportPathMap: () => ({'/': { page: '/'}})
+  exportPathMap: () => ({
+    '/': { page: '/'},
+    '/calendar': { page: '/calendar'}
+  }),
 })
 
