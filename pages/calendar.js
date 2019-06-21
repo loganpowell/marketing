@@ -1,9 +1,10 @@
-import { Calendar, Badge } from 'antd';
+import { Calendar, Badge, Drawer, List, Avatar, Card, Icon, Row, Col } from 'antd';
 // import { Fragment } from 'react';
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useReducer, useContext } from 'react'
 import { withPageRouter } from '../components/withPageRouter'
 
 import gql from 'nanographql'
+
 
 // const client = new GraphQLClient({
 //   url: 'https://api.github.com/graphql',
@@ -19,6 +20,8 @@ query ($name: String!, $owner: String!) {
           id
           title
           url
+          bodyText
+          bodyHTML
           assignees (first:10){
             edges {
               node {
@@ -66,6 +69,66 @@ query ($name: String!, $owner: String!) {
     }
   }
 }`
+
+const fetcher = async (auth) => {
+  const result = await fetch('https://api.github.com/graphql', {
+    method: "POST",
+    headers: { 'Authorization': "token " + auth },
+    body: ISSUES_QUERY({ name: "embeds", owner: "loganpowell" })
+  })
+
+  const prime = await result.json()
+  // console.log("prime:")
+  const { data: { repository: { issues: { edges } } } } = prime
+  // console.log(prime)
+
+  return edges.map(({ node }, idx) => {
+    const {
+      title,
+      url,
+      assignees: { edges: assignee_edges },
+      author: { login, avatarUrl: authorAvatar },
+      bodyText,
+      bodyHTML,
+      milestone: { dueOn },
+      state,
+      labels: { edges: label_edges },
+      projectCards: {
+        nodes: [{ column: { name: column_name } }],
+        edges: [{ node: { note: card_note, url: card_url } }]
+      }
+    } = node
+
+    return {
+      key: idx,
+      issue_title: title,
+      bodyText,
+      bodyHTML,
+      state,
+      dueOn,
+      issue_author: { user_id: login, authorAvatar },
+      issue_url: url,
+      assignees: assignee_edges.map(({ node: { name, avatarUrl } }) => ({ name, avatarUrl })),
+      labels: label_edges.map(({ node: { color, name } }) => ({ color, name })),
+      column_name,
+      card_info: { card_note, card_url }
+    }
+  })
+}
+
+
+function getListData(data, value) {
+
+  let input = new Date(value).setHours(0, 0, 0, 0)
+  // console.log("value: " + value)
+
+  // let fetchedDate = new Date("2019-06-28T00:00:00Z").toISOString().split('T')[0]
+  let matches = data.filter((cur, idx) => new Date(cur.dueOn).setHours(0, 0, 0, 0) === input)
+  return matches.map(({ state, issue_title }) => ({
+    type: state === "OPEN" ? 'error' : 'success',
+    content: issue_title
+  }))
+}
 
 let example_response = {
   "data": {
@@ -225,67 +288,48 @@ let example_response = {
   }
 }
 
-function getListData(value) {
-  let listData;
-  // console.log("value: " + new Date(value).toISOString().split('T')[0])
-  // console.log("Date: " + new Date("2019-06-28T00:00:00Z").toISOString().split('T')[0])
-  switch (value.date()) {
-    case 8:
-      listData = [
-        { type: 'warning', content: 'This is warning event.' },
-        { type: 'success', content: 'This is usual event.' },
-      ];
-      break;
-    case 10:
-      listData = [
-        { type: 'warning', content: 'This is warning event.' },
-        { type: 'success', content: 'This is usual event.' },
-        { type: 'error', content: 'This is error event.' },
-      ];
-      break;
-    case 15:
-      listData = [
-        { type: 'warning', content: 'This is warning event' },
-        { type: 'success', content: 'This is very long usual event。。....' },
-        { type: 'error', content: 'This is error event 1.' },
-        { type: 'error', content: 'This is error event 2.' },
-        { type: 'error', content: 'This is error event 3.' },
-        { type: 'error', content: 'This is error event 4.' },
-      ];
-      break;
-    default:
+
+
+const DataCells = ({ value }) => {
+  const { state: { data } } = useContext(Context)
+
+  if (!data) {
+    return null
+  } else {
+    const filteredIssues = getListData(data, value)
+
+    // console.log('issues: ' + data)
+
+    // console.log("state: " + state )
+    return (
+      <ul className="events">
+        {filteredIssues.map(item => (
+          <li key={item.content}>
+            <Badge status={item.type} text={item.content} className="ant-badge-status" />
+          </li>
+        ))}
+        <style jsx>{`
+        .events {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+        .events .ant-badge-status {
+          overflow: hidden;
+          white-space: nowrap;
+          width: 100%;
+          text-overflow: ellipsis;
+          font-size: 12px;
+        }
+        `}
+        </style>
+      </ul>
+    );
   }
-  return listData || [];
+  return null
 }
 
-function dateCellRender(value) {
-  const listData = getListData(value);
-
-  return (
-    <ul className="events">
-      {listData.map(item => (
-        <li key={item.content}>
-          <Badge status={item.type} text={item.content} className="ant-badge-status" />
-        </li>
-      ))}
-      <style jsx>{`
-      .events {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-      .events .ant-badge-status {
-        overflow: hidden;
-        white-space: nowrap;
-        width: 100%;
-        text-overflow: ellipsis;
-        font-size: 12px;
-      }
-      `}
-      </style>
-    </ul>
-  );
-}
+const dateCellRender = value => <DataCells value={value} />
 
 function getMonthData(value) {
   if (value.month() === 8) {
@@ -314,62 +358,199 @@ function monthCellRender(value) {
 }
 
 
-const fetcher = async (auth) => {
-  const result = await fetch('https://api.github.com/graphql', {
-    method: "POST",
-    headers: {
-      // 'Content-Type': 'application/json',
-      'Authorization': "token " + auth
-    },
-    body: ISSUES_QUERY({ name: "embeds", owner: "loganpowell" })
-  })
- 
-  const prime = await result.json()
-  // console.log("api call: " + url);
-  console.log("prime:")
-  const { data: { repository: { issues: { edges }}} } = prime
-  console.log(prime)
-  
-  return edges.map(({ node }, idx) => {
-    const {
-      title,
-      url,
-      assignees: { edges: assignee_edges },
-      author: { login, avatarUrl: authorAvatar },
-      milestone: { dueOn },
-      state,
-      labels: { edges: label_edges },
-      projectCards: { nodes: [{ column: { name: column_name }}], edges: [{ node: { note: card_note, url: card_url}}] }
-    } = node
-
-    return {
-      key: idx,
-      issue_title: title,
-      state,
-      dueOn,
-      issue_author: {user_id: login, authorAvatar},
-      issue_url: url,
-      assignees: assignee_edges.map(({ node: { name, avatarUrl }}) => ({ name, avatarUrl })),
-      labels: label_edges.map(({ node: { color, name }}) => ({ color, name })),
-      column_name,
-      card_info: { card_note, card_url }
+// REDUCER =================================
+const calendarReducer = (state, action) => {
+  switch (action.type) {
+    case 'LOAD': {
+      return {
+        auth: action.auth,
+        data: action.data,
+        loaded: true
+      }
     }
-  }) 
+    case 'OPEN_DRAWER': {
+      return {
+        ...state,
+        drawerOpen: true,
+        drawerContents: action.contents
+      }
+    }
+    case 'CLOSE_DRAWER': {
+      return {
+        ...state,
+        drawerOpen: false
+      }
+    }
+    default: return {
+      ...state
+    }
+  }
 }
+
+// CONTEXT ==================================
+const Context = React.createContext()
+
+// INITIAL STATE ============================
+const initialState = {
+  auth: "loading...",
+  loaded: false,
+  data: [],
+  drawerOpen: false,
+  drawerContents: []
+}
+
+const retrieveMatches = (data, date) => {
+  const matches = data.filter(datum => new Date(date).setHours(0, 0, 0, 0) === new Date(datum.dueOn).setHours(0, 0, 0, 0))
+  return matches
+}
+
+const { Meta } = Card
+
+
+
+const IssueCard = ({ issue }) => {
+  // const { state: { data } } = useContext(Context)
+  const {
+    card_info: { card_url },
+    issue_author: { authorAvatar },
+    issue_title,
+    issue_url,
+    state,
+    column_name,
+    labels,
+    assignees,
+    bodyText,
+    bodyHTML,
+    card_info: { card_note }
+  } = issue
+
+  const imageTagsRegex = /<img [^>]*src="[^"]*"[^>]*>/gm
+  const imageSrcRegex = /.*src="([^"]*)".*/
+  const images = bodyHTML.length > 0 ? bodyHTML.match(imageTagsRegex) : null
+  const bannerSrc = images !== null ? images.map(img => img.replace(imageSrcRegex, '$1'))[0] : ""
+  console.log("bannerSrc: " + bannerSrc)
+
+  return (
+    <Card
+      style={{ width: '100%' }}
+      cover={bannerSrc !== "" ?
+        <img
+          alt={issue_title}
+          src={bannerSrc}
+        />
+        : null
+      }
+      actions={[
+        <a href={card_url}>
+          <Icon type="project"/>
+        </a>,
+        <a href={issue_url}>
+          <Icon type="edit"/>
+        </a>
+        ,
+        // <Icon type="ellipsis">
+        <Avatar src={ assignees.length > 0 ? assignees[0].avatarUrl : "" } size={"small"}/>
+        // </Icon>
+
+      ]}
+    >
+      <Meta
+        avatar={<Avatar src={authorAvatar} />}
+        title={issue_title}
+        description={bodyText}
+      />
+    </Card>
+  )
+}
+
+
 
 const Index = ({ router: { query: { auth } } }) => {
-  const [ data, setData ] = useState([])
-
+  const [state, dispatch] = useReducer(calendarReducer, initialState)
   useEffect(() => {
-    const fetchData = async ( auth ) => {
-      const res = await fetcher(auth)
-      setData(res)
-    }
+    const fetchData = (auth) => fetcher(auth).then(res => {
+      dispatch({
+        type: 'LOAD',
+        data: res,
+        auth: auth
+      })
+      // console.log("res: " + JSON.stringify(res))
+    })
+
     fetchData(auth)
   }, [])
+  const fireDateSelection = (e) => {
+    // console.log("e._d: " + new Date(e._d).setHours(0,0,0,0))
+    const matched = retrieveMatches(state.data, e._d)
+    dispatch({
+      type: 'OPEN_DRAWER',
+      contents: matched
+    })
+  }
+  const closeDrawer = () => {
+    dispatch({
+      type: 'CLOSE_DRAWER'
+    })
+  }
 
-  console.log("DATA: " + JSON.stringify(data))
-  return <Calendar dateCellRender={dateCellRender} monthCellRender={monthCellRender}/>
+
+  // console.log("DATA: " + JSON.stringify(state))
+  return (
+    <Context.Provider value={{ state, dispatch }}>
+      <Calendar dateCellRender={dateCellRender} monthCellRender={monthCellRender} onSelect={fireDateSelection} />
+      <Drawer
+        title="Issues:"
+        placement="right"
+        closable={true}
+        onClose={closeDrawer}
+        visible={state.drawerOpen}
+        width={"300px"}
+      >
+        <List>
+          {state.drawerContents ? state.drawerContents.map((issue, idx) => (
+            <List.Item key={issue.key}>
+              <IssueCard issue={issue} />
+            </List.Item>
+          )) : ""}
+        </List>
+      </Drawer>
+    </Context.Provider>
+  )
 }
 
+// <ul className="events">
+//         {filteredIssues.map(item => (
+//           <li key={item.content}>
+//             <Badge status={item.type} text={item.content} className="ant-badge-status" />
+//           </li>
+//         ))}
+//         <style jsx>{`
+//         .events {
+//           list-style: none;
+//           margin: 0;
+//           padding: 0;
+//         }
+//         .events .ant-badge-status {
+//           overflow: hidden;
+//           white-space: nowrap;
+//           width: 100%;
+//           text-overflow: ellipsis;
+//           font-size: 12px;
+//         }
+//         `}
+//         </style>
+
 export default withPageRouter(Index)
+
+let example = {
+  "key": 0,
+  "issue_title": "testing back-log",
+  "state": "OPEN",
+  "dueOn": "2019-06-28T00:00:00Z",
+  "issue_author": { "user_id": "loganpowell", "authorAvatar": "https://avatars1.githubusercontent.com/u/3408191?v=4" },
+  "issue_url": "https://github.com/loganpowell/embeds/issues/2",
+  "assignees": [{ "name": "Logan Powell", "avatarUrl": "https://avatars1.githubusercontent.com/u/3408191?v=4" }],
+  "labels": [],
+  "column_name": "back-log",
+  "card_info": { "card_note": null, "card_url": "https://github.com/loganpowell/embeds/projects/1#card-22973826" }
+}
