@@ -1,4 +1,4 @@
-(window["webpackJsonp"] = window["webpackJsonp"] || []).push([["styles"],{
+webpackHotUpdate("styles",{
 
 /***/ "./node_modules/antd/lib/avatar/style/index.less":
 /*!*******************************************************!*\
@@ -629,5 +629,5 @@
 
 /***/ })
 
-}]);
-//# sourceMappingURL=styles.js.map
+})
+//# sourceMappingURL=styles.e9d0dd0b9fc3d929ea2a.hot-update.js.map

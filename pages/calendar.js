@@ -1,4 +1,5 @@
-import { Calendar, Badge, Drawer, List, Avatar, Card, Icon, Row, Col } from 'antd';
+import { Calendar, Badge, Drawer, List, Avatar, Card, Icon, Row, Col, Tag, Progress } from 'antd';
+import Markdown from 'react-markdown'
 // import { Fragment } from 'react';
 import { useState, useEffect, useReducer, useContext } from 'react'
 import { withPageRouter } from '../components/withPageRouter'
@@ -22,6 +23,7 @@ query ($name: String!, $owner: String!) {
           url
           bodyText
           bodyHTML
+          body
           assignees (first:10){
             edges {
               node {
@@ -90,6 +92,7 @@ const fetcher = async (auth) => {
       author: { login, avatarUrl: authorAvatar },
       bodyText,
       bodyHTML,
+      body,
       milestone: { dueOn },
       state,
       labels: { edges: label_edges },
@@ -104,12 +107,13 @@ const fetcher = async (auth) => {
       issue_title: title,
       bodyText,
       bodyHTML,
+      body,
       state,
       dueOn,
       issue_author: { user_id: login, authorAvatar },
       issue_url: url,
       assignees: assignee_edges.map(({ node: { name, avatarUrl } }) => ({ name, avatarUrl })),
-      labels: label_edges.map(({ node: { color, name } }) => ({ color, name })),
+      labels: label_edges.map(({ node: { color, name, id } }) => ({ color : `#${color}`, name, id })),
       column_name,
       card_info: { card_note, card_url }
     }
@@ -168,7 +172,6 @@ const DataCells = ({ value }) => {
       </ul>
     );
   }
-  return null
 }
 
 const dateCellRender = value => <DataCells value={value} />
@@ -246,8 +249,32 @@ const retrieveMatches = (data, date) => {
   return matches
 }
 
-const { Meta } = Card
 
+const StatBar = ({ body, percentDone, tags }) => {
+  const bodySansImgRegex = /(\!\[)(.*?)(\))/g
+  const cleanedBody = body.replace(bodySansImgRegex, "")
+  return (
+    <div> 
+    { percentDone === 100 ? <div><Progress percent={percentDone} size="small" /><br/></div>
+    : percentDone > 0 ? <div><Progress percent={percentDone} size="small" status="active"/><br/></div>
+    : null
+    } 
+    { tags.length > 0 ? tags.map(tag => (
+      <div key={tag.id} className="wrap-tag" ><Tag color={tag.color}>{tag.name}</Tag></div>)
+    )
+    : null
+    }
+    <Markdown source={cleanedBody}/>
+    <style jsx>{`
+      img { max-width: 100%; height: auto;}
+     .wrap-tag { margin-bottom: 3px; border: none; background: none; 
+     }`}</style>
+    </div>  
+  )
+}
+
+
+const { Meta } = Card
 
 
 const IssueCard = ({ issue }) => {
@@ -262,14 +289,25 @@ const IssueCard = ({ issue }) => {
     labels,
     assignees,
     bodyText,
+    body,
     bodyHTML,
     card_info: { card_note }
   } = issue
 
+  console.log("labels: " + JSON.stringify(labels))
   const imageTagsRegex = /<img [^>]*src="[^"]*"[^>]*>/gm
   const imageSrcRegex = /.*src="([^"]*)".*/
   const images = bodyHTML.length > 0 ? bodyHTML.match(imageTagsRegex) : null
   const bannerSrc = images !== null ? images.map(img => img.replace(imageSrcRegex, '$1'))[0] : ""
+
+  const allBracketsRegex = /\[.\]/g
+  const doneBracketsRegex = /\[x\]/g
+  // console.log("regex length: " + body.match(allBracketsRegex))
+  const todosCount = body.length > 0 ? body.match(allBracketsRegex) : 0
+  const doneCount = body.length > 0 ? body.match(doneBracketsRegex) : 0
+  const percentDone = todosCount !== null ? Math.floor((doneCount.length / todosCount.length) * 100) : null
+
+
   console.log("bannerSrc: " + bannerSrc)
 
   return (
@@ -299,7 +337,7 @@ const IssueCard = ({ issue }) => {
       <Meta
         avatar={<Avatar src={authorAvatar} />}
         title={issue_title}
-        description={bodyText}
+        description={<StatBar body={body} percentDone={percentDone} tags={labels}/>}
       />
     </Card>
   )
