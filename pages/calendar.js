@@ -1,9 +1,10 @@
-import { Calendar, Badge, Drawer, List, Avatar, Card, Icon, Row, Col, Tag, Progress } from 'antd';
+import { Calendar, Badge, Drawer, List, Avatar, Card, Icon, Row, Col, Tag, Progress, Button } from 'antd';
 import Markdown from 'react-markdown'
 // import { Fragment } from 'react';
 import { useState, useEffect, useReducer, useContext } from 'react'
 import { withPageRouter } from '../components/withPageRouter'
-
+// import { Parser } from 'json2csv'
+import CsvDownload from 'react-json-to-csv'
 import gql from 'nanographql'
 
 
@@ -20,6 +21,7 @@ query ($name: String!, $owner: String!) {
         node{
           id
           title
+          createdAt
           url
           bodyText
           bodyHTML
@@ -91,6 +93,7 @@ const fetcher = async (auth) => {
       assignees: { edges: assignee_edges },
       author: { login, avatarUrl: authorAvatar },
       bodyText,
+      createdAt,
       bodyHTML,
       body,
       milestone: { dueOn },
@@ -105,6 +108,7 @@ const fetcher = async (auth) => {
     return {
       key: idx,
       issue_title: title,
+      createdAt,
       bodyText,
       bodyHTML,
       body,
@@ -251,8 +255,8 @@ const retrieveMatches = (data, date) => {
 
 
 const StatBar = ({ body, percentDone, tags }) => {
-  const bodySansImgRegex = /(\!\[)(.*?)(\))/g
-  const cleanedBody = body.replace(bodySansImgRegex, "")
+  const bodyImgsRegex = /(\!\[)(.*?)(\))/g
+  const cleanedBody = body.replace(bodyImgsRegex, "")
   return (
     <div> 
     { percentDone === 100 ? <div><Progress percent={percentDone} size="small" /><br/></div>
@@ -308,7 +312,7 @@ const IssueCard = ({ issue }) => {
   const percentDone = todosCount !== null ? Math.floor((doneCount.length / todosCount.length) * 100) : null
 
 
-  console.log("bannerSrc: " + bannerSrc)
+  // console.log("bannerSrc: " + bannerSrc)
 
   return (
     <Card
@@ -342,7 +346,71 @@ const IssueCard = ({ issue }) => {
     </Card>
   )
 }
+/*
+    return {
+      key: idx,
+      issue_title: title,
+      bodyText,
+      bodyHTML,
+      body,
+      state,
+      dueOn,
+      issue_author: { user_id: login, authorAvatar },
+      issue_url: url,
+      assignees: assignee_edges.map(({ node: { name, avatarUrl } }) => ({ name, avatarUrl })),
+      labels: label_edges.map(({ node: { color, name, id } }) => ({ color : `#${color}`, name, id })),
+      column_name,
+      card_info: { card_note, card_url }
+    }
+  */
 
+ const getFormattedDate = inDate => {
+  var date = new Date(inDate);
+  var month = date.getMonth() + 1;
+  var day = date.getDate();
+  var year = date.getFullYear();
+  return month + "/" + day + "/" + year;
+}
+
+// let testDateCreated = "2019-06-19T14:45:32Z"
+// let testDateDue = "2019-06-28T00:00:00Z" 
+
+// let formatCreatedDate = GetFormattedDate(testDateCreated) //?
+
+const dlcsv = (data) => {
+  // const fields = ['dueOn', 'issue_title',]
+  // const json2csvParser = new Parser({ fields })
+  // const csv = json2csvParser.parse(data)
+  // const fileData = {
+  //   mime: "text/plain;charset=utf-8",
+  //   filename: "embeds.csv",
+  //   content: csv
+  // }
+  const fileData = data.map(({ 
+    dueOn,
+    issue_title,
+    createdAt,
+    card_info: { card_note },
+    labels,
+    bodyText,
+    issue_author: { user_id },
+    issue_url
+  }) => ({
+    'Event Name': issue_title,
+    'Start Date': `${getFormattedDate(createdAt)} 12:00`,
+    'End Date': `${getFormattedDate(dueOn)} 12:00`,
+    'Campaign': card_note ? card_note : "",
+    'Description': bodyText.replace(/(\r\n|\n|\r)/gm,"  "),
+    'Communication Type': labels.length > 0 ?  `Email Marketing: ${labels.map(label => " " + label.name )}` : "",
+    'Deccenial Related':  labels.filter(label => label.name === 'decennial').length > 0 ? "TRUE" : "FALSE",
+    'Key Date':  labels.filter(label => label.name === 'key date').length > 0 ? "TRUE" : "FALSE",
+    'Post to public calendar': "FALSE",
+    'Census POC': user_id,
+    'Item Type': "Item",
+    'Path': issue_url
+  }))
+  return fileData
+}
 
 
 const Index = ({ router: { query: { auth } } }) => {
@@ -386,14 +454,19 @@ const Index = ({ router: { query: { auth } } }) => {
         visible={state.drawerOpen}
         width={"300px"}
       >
-        <List>
-          {state.drawerContents ? state.drawerContents.map((issue, idx) => (
-            <List.Item key={issue.key}>
-              <IssueCard issue={issue} />
-            </List.Item>
-          )) : ""}
-        </List>
+      {state.drawerContents ? state.drawerContents.map((issue, idx) => (
+        <div>
+          <IssueCard key={issue.key} issue={issue} /><br/>
+        </div>
+      )) : ""}
       </Drawer>
+      {state.data.length > 0 ? 
+        <CsvDownload data={dlcsv(state.data)}>
+          <Button icon="download" size="medium">
+            Download Calendar .csv
+          </Button>
+        </CsvDownload>
+        : ""}
     </Context.Provider>
   )
 }
