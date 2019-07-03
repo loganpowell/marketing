@@ -78,17 +78,20 @@ const fetcher = async (auth) => {
   const result = await fetch('https://api.github.com/graphql', {
     method: "POST",
     headers: { 'Authorization': "token " + auth },
-    body: ISSUES_QUERY({ name: "embeds", owner: "loganpowell" })
+    body: ISSUES_QUERY({ name: "digital-marketing-team", owner: "ACalaCensus" })
   })
 
   const prime = await result.json()
-  // console.log("prime:")
   const { data: { repository: { issues: { edges } } } } = prime
-  // console.log(prime)
-
-  return edges.map(({ node }, idx) => {
+  
+  const cleaned = edges.filter(({ node }) => node.milestone !== null)
+  console.log("cleaned:")
+  console.log(cleaned)
+  
+  return cleaned.map(({ node }, idx) => {
     const {
       title,
+      id,
       url,
       assignees: { edges: assignee_edges },
       author: { login, avatarUrl: authorAvatar },
@@ -106,7 +109,7 @@ const fetcher = async (auth) => {
     } = node
 
     return {
-      key: idx,
+      key: id,
       issue_title: title,
       createdAt,
       bodyText,
@@ -268,7 +271,7 @@ const StatBar = ({ body, percentDone, tags }) => {
     )
     : null
     }
-    <Markdown source={cleanedBody}/>
+    {/* <Markdown source={cleanedBody}/> */}
     <style jsx>{`
       img { max-width: 100%; height: auto;}
      .wrap-tag { margin-bottom: 3px; border: none; background: none; 
@@ -377,31 +380,30 @@ const IssueCard = ({ issue }) => {
 
 // let formatCreatedDate = GetFormattedDate(testDateCreated) //?
 
+const getCampaign = labels => {
+  const filtered = labels.filter(label => label.name.match(/campaign.*/) !== null)
+  console.log("filtered: " + JSON.stringify(filtered))
+  return filtered.length > 0 ? filtered[0].name.match(/campaign: (.*)/)[1] : ""
+}
+
 const dlcsv = (data) => {
-  // const fields = ['dueOn', 'issue_title',]
-  // const json2csvParser = new Parser({ fields })
-  // const csv = json2csvParser.parse(data)
-  // const fileData = {
-  //   mime: "text/plain;charset=utf-8",
-  //   filename: "embeds.csv",
-  //   content: csv
-  // }
   const fileData = data.map(({ 
+    key,
     dueOn,
     issue_title,
     createdAt,
-    card_info: { card_note },
     labels,
     bodyText,
     issue_author: { user_id },
     issue_url
   }) => ({
+    'ID': key,
     'Event Name': issue_title,
     'Start Date': `${getFormattedDate(createdAt)} 12:00`,
     'End Date': `${getFormattedDate(dueOn)} 12:00`,
-    'Campaign': card_note ? card_note : "",
-    'Description': bodyText.replace(/(\r\n|\n|\r)/gm,"  "),
-    'Communication Type': labels.length > 0 ?  `Email Marketing: ${labels.map(label => " " + label.name )}` : "",
+    'Campaign': getCampaign(labels) ,
+    'Description': bodyText.replace(/(\r\n|\n|\r)/gm,"  ").replace(/,.*$/, ""),
+    'Communication Type': "Email Marketing",
     'Deccenial Related':  labels.filter(label => label.name === 'decennial').length > 0 ? "TRUE" : "FALSE",
     'Key Date':  labels.filter(label => label.name === 'key date').length > 0 ? "TRUE" : "FALSE",
     'Post to public calendar': "FALSE",
