@@ -404,7 +404,7 @@ const dlcsv = (data) => {
     'Campaign': getCampaign(labels) ,
     'Description': bodyText.replace(/(\r\n|\n|\r)/gm,"  ").replace(/,.*$/, ""),
     'Communication Type': "Email Marketing",
-    'Deccenial Related':  labels.filter(label => label.name === 'decennial').length > 0 ? "TRUE" : "FALSE",
+    'Decennial Related':  labels.filter(label => label.name === 'decennial').length > 0 ? "TRUE" : "FALSE",
     'Key Date':  labels.filter(label => label.name === 'key date').length > 0 ? "TRUE" : "FALSE",
     'Post to public calendar': "FALSE",
     'Census POC': user_id,
