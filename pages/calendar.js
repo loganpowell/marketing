@@ -6,7 +6,7 @@ import { withPageRouter } from '../components/withPageRouter'
 // import { Parser } from 'json2csv'
 import CsvDownload from 'react-json-to-csv'
 import gql from 'nanographql'
-
+import moment from 'moment'
 
 // const client = new GraphQLClient({
 //   url: 'https://api.github.com/graphql',
@@ -85,8 +85,8 @@ const fetcher = async (auth) => {
   const { data: { repository: { issues: { edges } } } } = prime
   
   const cleaned = edges.filter(({ node }) => node.milestone !== null)
-  console.log("cleaned:")
-  console.log(cleaned)
+  // console.log("cleaned:")
+  // console.log(cleaned)
   
   return cleaned.map(({ node }, idx) => {
     const {
@@ -130,34 +130,38 @@ const fetcher = async (auth) => {
 
 function getListData(data, value) {
 
-  let input = new Date(value).setHours(0, 0, 0, 0)
-  // console.log("value: " + value)
+  let input = moment.utc(value).format("MMM Do YYYY")
+  // console.log("input:", input)
 
   // let fetchedDate = new Date("2019-06-28T00:00:00Z").toISOString().split('T')[0]
-  let matches = data.filter((cur, idx) => new Date(cur.dueOn).setHours(0, 0, 0, 0) === input)
-  return matches.map(({ state, issue_title }) => ({
+  let matches = data.filter( cur => moment.utc(cur.dueOn).format("MMM Do YYYY") === input)
+  return matches.map(({ state, issue_title, dueOn, key }) => ({
     type: state === "OPEN" ? 'error' : 'success',
-    content: issue_title
+    content: issue_title,
+    dueOn,
+    key
   }))
 }
 
+// console.log("moment for dueOn:", moment("2019-07-11T00:00:00Z"))
 
 
 const DataCells = ({ value }) => {
   const { state: { data } } = useContext(Context)
-
+  // console.log("data:", data )
+  // console.log("value:", value._d)
   if (!data) {
     return null
   } else {
-    const filteredIssues = getListData(data, value)
-
+    const filteredIssues = getListData(data, value._d)
+    // console.log("filteredIssues", filteredIssues)
     // console.log('issues: ' + data)
 
     // console.log("state: " + state )
     return (
       <ul className="events">
         {filteredIssues.map(item => (
-          <li key={item.content}>
+          <li key={item.key}>
             <Badge status={item.type} text={item.content} className="ant-badge-status" />
           </li>
         ))}
@@ -252,7 +256,7 @@ const initialState = {
 }
 
 const retrieveMatches = (data, date) => {
-  const matches = data.filter(datum => new Date(date).setHours(0, 0, 0, 0) === new Date(datum.dueOn).setHours(0, 0, 0, 0))
+  const matches = data.filter(datum => moment.utc(date).format("MMM Do YYYY") === moment.utc(datum.dueOn).format("MMM Do YYYY"))
   return matches
 }
 
@@ -287,6 +291,7 @@ const { Meta } = Card
 const IssueCard = ({ issue }) => {
   // const { state: { data } } = useContext(Context)
   const {
+    key,
     card_info: { card_url },
     issue_author: { authorAvatar },
     issue_title,
@@ -319,6 +324,7 @@ const IssueCard = ({ issue }) => {
 
   return (
     <Card
+      key={key}
       style={{ width: '100%' }}
       cover={bannerSrc !== "" ?
         <img
@@ -464,9 +470,9 @@ const Index = ({ router: { query: { auth } } }) => {
       </Drawer>
       {state.data.length > 0 ? 
         <CsvDownload data={dlcsv(state.data)}>
-          <Button icon="download" size="medium">
             Download Calendar .csv
-          </Button>
+          {/* <Button icon="download" size="medium">
+          </Button> */}
         </CsvDownload>
         : ""}
     </Context.Provider>
